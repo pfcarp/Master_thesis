@@ -1,0 +1,35 @@
+\chapter{Conclusions}
+\label{chapter:Conclusions}
+\thispagestyle{myheadings}
+
+% set this to the location of the figures for this chapter. it may
+% also want to be ../Figures/2_Body/ or something. make sure that
+% it has a trailing directory separator (i.e., '/')!
+\graphicspath{{4_Conclusion/Figures/}}
+This thesis study the feasibility of distributing traditionally on-board profiling techniques by repurposing high-speed external interfaces custom profiling hardware. By utilizing the highly coupled and I/O rich FPGA on the  Xilinx Zynq Ultrascale+ platform, a proof of concept networking mechanism for unifying the system bus to the outside world was accomplished and studied. 
+
+The proposed solution leverages the SFP+ interface to transmit profiling data from the FPGA to a host computer, enabling real-time monitoring and analysis of system performance. This approach not only enhances the observability of the system but also provides a non-invasive method for profiling, allowing developers to gain insights into system behavior without significantly impacting performance.
+
+The initial applications of this work will be to provide a more powerful and flexible Logic analyzer to complement or replace the traditional In-Circuit Logic Analyzer (ILA) in the Xilinx toolchain. The proposed solution is non-invasive, easy to use, and extendable, allowing for enhanced observability of the system. This mechanism can be adapted to complement other techniques in both hardware and software domains, providing a robust framework for system monitoring and debugging. Furthermore, it offers an opportunity for simpler embedded solutions to feed data into a central, powerful computer, enabling comprehensive Control Flow Integrity (CFI) checking and other advanced methods.
+
+Despite experiencing a performance hit, it is important to note that this is not due to our module but rather the inherent penalty of the Processing Element (PE) and Programmable Logic (PL) boundary. Nevertheless, we maintain performance on par with a simple translator, demonstrating the efficiency of our approach. The ZCU platform utilized only one SFP port out of a total of four available, indicating that further exploration of these limitations could yield insights into compatibility with larger swarms of computers performing similar tasks.
+
+Future work will not only focus on sending data but also on receiving data in the same manner, potentially enabling remote memory access. Additionally, direct interfacing with the CoreSight debug infrastructure could provide enhanced tools for system analysis and debugging, further expanding the capabilities of this profiling mechanism.
+
+This work proposes working towards AXI over Ethernet (AoE) as a standard for profiling and debugging in heterogeneous systems, leveraging the existing infrastructure and protocols to create a unified approach to system monitoring. Through the use of the EthHelper framework we aim to establish a robust and adaptable profiling solution that can be integrated into various systems, with the initial application for profiling but with the powerful potential for broader applications of remote execution, remote memory, and remote integrity checking.
+
+
+% Uh, something, something about it being non-invasive and easy to use and extend the observability one can get with a standard Ila and how this mechanism can be adapted to complement other techniques in this hardware and software spaces. Also, that this provides a good opportunity for any simpler embedded solutions to feed into one central, powerful computer for it to do all the CFI checking and any other myriad of methods.
+
+% Say that even though we experience a performance hit, it is not due to our module, but rather the PE slash PL boundary that gives us a penalty. And despite that, we still maintain on-par performance with a simple translator. Something, something. Say that the ZCU was only using one SFP port out of a total of four and that the limitations should be explored more broadly and see how compatible it is with entire swarms of these computers doing those things.
+
+
+
+% Something, something about future works where we can not only send data but receive data in the exact same way and potentially have remote memory. Sending and or directly interface with the coresight debug infrastructure to provide better tools.
+
+
+% \section{Summary of the thesis}
+
+% Time to get philosophical and wordy.
+
+% {\bf Important}: In the list of references at the end of thesis, abbreviated journal and conference titles aren't allowed. Either you must put the full title in each item, or create a List of Abbreviations at the beginning of the references, with the abbreviations in one column on the left (arranged in alphabetical order), and the corresponding full title in a second column on the right.  Some abbreviations, such as IEEE, SIGMOD, ACM, have become standardized and accepted by librarians, so those should not be spelled out in full.

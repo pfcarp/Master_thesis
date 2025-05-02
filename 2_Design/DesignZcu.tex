@@ -1,0 +1,77 @@
+\section{Publisher Design Overview}
+% \subsection{Heterogeneous Architecture}
+% The Publisher system adopts a heterogeneous architecture, integrating a conventional CPU cluster(s) alongside a Programmable Logic (PL) block. This fusion of disparate structures is facilitated by a high-speed interconnect, which serves as the bridge enabling seamless communication and collaboration between the CPU cluster(s) and the PL block. By leveraging both CPU-based processing capabilities and the flexibility of programmable logic, the Publisher system achieves a versatile and powerful computing environment, capable of tackling diverse tasks and accommodating a wide range of computational requirements. Furthermore, the publisher is able to adhere to updates for data transmission as needed without the need to create new silicon or libraries.
+
+
+% \subsection{Memory-Mapped System Bus}
+% The assumption for any architecture is that there is some underlying hardware and scheme connecting any two elements within silicon for communication. For this paper the scheme is assumed as a memory-mapped interconnect(MMI), which dictates that all components (e.g. cpu cluster, PL block, accelerators, etc) are giving a physical address and a scope. Communication is handled by the shared bus directing data and signals to the appropriate address and the corresponding device should handle the data according to a protocol.
+% %what to say after this? easier use and ease of implementing something ontop of a mm-interconnect?
+
+The publisher system needs to provide a few basic components and properties. The system must have a processing element (PE), programmable logic (PL), external interface for network communication, main memory, an Observer within the PL, and a system bus subsystem to tie everything together. All components can communicate with any other components independently through the interconnect or other dedicated internal links. This communication must be standardized on all components and should use address space for directing access to the appropriate components, memory, or I/O devices. Communication with the bus and components is generally assumed to be parallel in nature (e.g. reads and writes can occur at the same time given no conflict). Considering these requirements, we will be focusing on specific applications of bus and external communication going forward. Therefore, we will implement \MethodNameLong (\MethodNameShort) in the following manners seen in \ref*{fig:all_paths}.
+
+
+
+
+% Considering these requirements, the \MethodNameLong ~(\MethodNameShort) can be implemented in the following manners seen in \ref*{fig:all_paths} explained in the following portion.
+
+%I think I should take more about the PE/PL boundary and the problems caused by it
+%expand these a bit more. I think I can really milk it if I wanted too
+First, transactions on the system bus are explicitly sent to the PL for duplication~\ref{fig:paths_duplicated}. This provides the shortest critical path for explicit routing given that duplication does not imply blocking caused by the Observer's mechanisms. However, this a fundamentally lossy tracking architecture which may unpredictably drop data at the convenience of not slowing PE.
+
+Second, transactions on the system bus are explicitly routed through the Observer in the PL~\ref{fig:obs_on_the_path}. This allows for lossless tracking of transactions albeit at the cost of having all of the mechanisms involving the external interface on the critical path.
+
+Lastly, cache-coherent system buses broadcast transactions which the Observer can passively tie into~\ref{fig:paths_snoop}. A schema that would allow the Observer mechanisms to function without explicit routing to the PL address space. Furthermore, it comes at minimal cost since the transaction is not explicitly crossing the PE/PL boundary. 
+
+For ease of implementation, we will be implementing any modules to follow the~\ref{fig:obs_on_the_path} schema. This will provide a lossless tracking mechanism with minimal engineering overhead. 
+
+%add more labels to each figure designating PE or PL 
+%the captions are megafucked and IDK why
+\begin{figure}
+    \begin{minipage}[b]{0.32\textwidth}
+        \input{imgs/Generic_Duplicated}
+        \caption{Transactions explicitly routed and duplicated within the PL}
+        \label{fig:paths_duplicated}
+    \end{minipage}
+    \begin{minipage}[b]{0.32\textwidth}
+        
+        \input{imgs/Generic_on_the_Path}
+        \caption{Transactions are explicitly routed through the Observer within the PL}
+        \label{fig:obs_on_the_path}
+    \end{minipage}
+    \begin{minipage}[b]{0.32\textwidth}
+        \input{imgs/Generic_Snoop}
+        \caption{Transactions are broadcast on the System Bus with a passive Observer}
+        \label{fig:paths_snoop}
+    \end{minipage}
+    \caption{Fundamental Routing Schemas}
+    \label{fig:all_paths}
+\end{figure}
+
+% \begin{figure}
+%     \centering
+%     % First minipage
+%     \begin{minipage}[b]{0.3\textwidth}
+%         \centering
+%         \input{imgs/Generic_Duplicated}
+%         \parbox{1.5\linewidth}{\centering\caption*{Transactions explicitly routed and duplicated within the PL}}
+%         \label{fig:paths_duplicated}
+%     \end{minipage}
+%     \hfill
+%     % Second minipage
+%     \begin{minipage}[b]{0.3\textwidth}
+%         \centering
+%         \input{imgs/Generic_on_the_Path}
+%         \parbox{1.5\linewidth}{\centering\caption*{Transactions are explicitly routed through the Observer within the PL}}
+%         \label{fig:paths_on_the_path}
+%     \end{minipage}
+%     \hfill
+%     % Third minipage
+%     \begin{minipage}[b]{0.3\textwidth}
+%         \centering
+%         \input{imgs/Generic_Snoop}
+%         \parbox{1.5\linewidth}{\centering\caption*{Transactions are broadcast on the System Bus with a passive Observer}}
+%         \label{fig:paths_snoop}
+%     \end{minipage}
+%     \caption{Overall caption for the three subfigures.}
+%     \label{fig:all_paths}
+% \end{figure}

@@ -1,0 +1,39 @@
+\section{PL Design Overview}
+\subsection{Memory-mapped Programmable Logic Block}
+%FPGA has multiple ports that are all tied to a memory address for ps-pl communication. this allows for a flexible design pattern 
+We assume that the PL block has multiple address spaces that can be used to account for possible different power/time domains on a system. These physical address spaces can be allocated to the same or separate physical ports on the Bus. This allows for the PL to contain multiple mechanisms to generate traffic on separate ports to the Bus.
+\subsection{Dedicated hardware}
+%Besides LUTS for constructing logic, the FPGA has dedicated hardware to accelerate or augment its processing power. In some case externally linked devices are linked to the fpga
+The basic building blocks of FPGAs are Look Up Tables (LUTs) which can be composed into fundamental transistor logic (e.g. AND, OR, etc). Throughout the development of the FPGA dedicated hardware blocks have been embedded into the FPGA to accelerate computation or introduce new functionality. For this paper, we will focus on the use of three dedicated hardware blocks found in modern FPGAs. Digital Signal Processors (DSPs) are computational accelerators for multiplication and division. Block RAM was invented to bring memory inside the FPGAs. Finally, GTH/GTY transceivers were introduced to handle external communication. 
+%using the fpga to look on the memory mapped interconnects can allow for a snoop to happen without the OS intervening. When snooping the data can be stored and sent to another location all through fpga mechanism
+
+%I think the section below should have a diagram of the general mechanisms of the Observer
+\subsection{Observer Mechanism}
+The \emph{Observer} has to fulfill several tasks: (1) communicate with the system bus, (2) form packets of transaction data, (3) instantiate a controller to use the external interface, and (4) send the data through the physical port. We show a generic module and layout to achieve the route through schema ~\ref{fig:obs_on_the_path} with ~\ref{fig:PL_Module}. 
+
+
+%I have not mentioned the parallel nature of the system bus anywhere
+\emph{Serializer/Communicator} is the initial point of the \emph{Observer} mechanisms which allows communication to and from the System Bus. Furthermore, This module is responsible for serializing data and metadata of R/W requests and distributing the data stream among available external interfaces. 
+%zcu102 has ddr4 2666v which has a peak transfer rate of 21.3333GB/s and a CAS Latency of 14.25 ns
+%actually the default config at the time of testing was DDR4-2133P with 17.06667GB/s and 14.063ns with the said ddr4-2666v so-DIMM module
+%given the above the memclk is 266.67MHz ioclk 1066.67MHz on the table
+
+%delays 
+%orch handshake+schedule = 3 clk cycles
+%Ethernet tready blackout = 2 clk cycles
+%
+
+
+The \emph{Packet Former Module (PFM)} is responsible for assembling serialized data and interfacing with the external interface controller. The PFM fulfills its responsibility by accumulating and packaging bus data to comply with the external interface protocols. In addition, this module abstracts control signals between the Serializer/Communicator and the \emph{Medium Controller} to allow for the accumulation of data without blocking the PE and correct communication. 
+
+A \emph{Medium Controller} needs to be instantiated to ingest packets from the Packet Former and manage external interface transceivers to transmit data. Moreover, this module offers debug signals to verify protocol compliance and transceiver operation. The medium and protocol will dictate what component in the PL will contribute to the overall additional latency of using \MethodNameShort. In respect to the minimum requirements, the latency and throughput of the system will be limited by the medium as DDR4 (the defacto memory in use) has a sustained raw throughput of 12.8 GB/s with 15ns CAS latency~\ref{fig:ddr4specs}.
+
+\begin{figure}
+\input{imgs/Generic_PL_Layout}
+        \caption{General module implementation in PL. For now, Communicator has Bidirectional communication only with non-PL components}
+        \label{fig:PL_Module}
+\end{figure}
+
+% Using the PL we can instantiate a mechanism to route transactions occurring on an Bus and have that information sent off-board through a transceiver. This requires custom hardware to manage the interactions between a Memory-mapped piece of memory and an interconnect so that the transactions do not overwhelm the transceiver's capabilities which would cause dropped packets, malformed packets, etc. 
+% %explain more how it works and what individual parts may exist because of such proposed methods
+% As this process happens on the hardware level and its components are isolated in the FPGA, the OS is unaware of the underlying mechanism.

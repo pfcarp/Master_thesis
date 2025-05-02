@@ -1,0 +1,65 @@
+\chapter{Implementation Overview}
+\label{chapter: implementation_overview}
+\section{System Overview}
+%talk breifly about the two computers and their specs
+%describe how they will be connected and tested
+Our test environment contains two systems that serve the purpose of publisher and subscriber. Our subscriber will be a Dell Precision 7950 equipped with Dual Intel Xeon Gold 6130 and a Mellanox ConnectX-2 Dual SFP+ NIC running Ubuntu 22.04. The publisher is a Xilinx Ultrascale+ ZCU102 with ZU9EG SOC running a generic Petalinux with SFP+ transceivers enabled. The FPGA bitstream was compiled with Vivado v2019.2. These two systems communicate through a single point-to-point connection via 10GBase-SR SFP+ LC Transceiver and OM3 fiber cable. We used tcpdump, a cli tool, to save the exported ethernet packets 
+
+%\section{Subscriber Details} any details about the subscriber are really just hurdles found during evaluation
+
+\section{ZCU102 Overview}
+The ZCU102 is an embedded development platform commercially-of-the-shelf (COTS) developed by AMD (previously Xilinx) equipped with ZU9EG SOC. 
+This SOC is a heterogeneous architecture with an application processor unit (APU) composed of quad ARM Cortex-A53, dual Cortex-R5, and an UltraScale+ FPGA. 
+These three main components interact through three communication modules: the Cache Coherent Interconnect (CCI), the Full Power Domain (FPD) main switch, and the Low Power Domain (LPD) main switch \ref{fig:Internal_Organization}. 
+The scope of this paper will encompass the APU, FPGA with dedicated SFP+ transceivers, and FPD main switch. 
+All memory allocated for applications will be routed through the FPGA aperture and ultimately be in system memory. 
+This initial concept is possible through reserving memory in the Device Tree Blob (DTB), RT-Bench, and the Advanced eXtensible Interface (AXI) protocol.
+
+
+
+\begin{figure}
+    \centering
+    \includesvg[scale=0.5]{imgs/SystemDiagramSimple.drawio.svg}
+    \caption{Internal Layout of the ZCU102 and EthHelper components}
+    \label{fig:Internal_Organization}
+\end{figure}
+    
+
+%The ZCU102 board has numerous external hardware for communication but we will be using the SFP+ cages dedicated to the FPGA. 
+
+%For the sake of this paper, we will be using a system ram  in the FPGA and communicate through the Main Switch and keep the SFP+ transceivers running at 10Gb/s instead of the maximum of 25Gb/s.
+%The methods of this paper can be applied to either bus however we will focus on communication through the Main Switch.
+\subsection{Advanced eXtensible Interface}
+Heterogeneous systems necessitate a common form of communication to facilitate computation and transactions between components of differing underlying mechanisms. 
+Our choice of platform is constructed around the AXI protocol for most inter-chip communication. 
+AXI Coherency Extensions (ACE) are used exclusively for high-speed components connected directly to the CCI.However, ACE is a bidirectional protocol for maintaing coherence with APU caches. ACE is also limited as only read type transactions can be seen excluding any write backs without explicit routing.
+This will be out of scope for the paper but is not a limitation of the current work or platform.
+AXI (and ACE by extension) is a memory-mapped communication protocol that relies on (1) manager and subordinate scheme and (2) a handshake mechanism to execute memory transactions.
+AXI comes in three variations FULL, LITE, and STREAM. This paper will touch directly on \axifull~ and \axistream~ as these are the necessary components for Transparent Snooping.
+\axifull~ is a bidirectional protocol that employs 5 channels (2 for reading memory and 3 for writing) that operate independently and in parallel. 
+In contrast, \axistream~ is a single-channel unidirectional protocol intended for data streams.
+
+\section{FPGA Overview}
+%job of the fpga is to copy data of 5 channels to 1 channel of the same speed to dedicated GTH transciever to, eventually, the Subscriber machine
+%Here I talk about the orchestrator mechanisms and the BRAM leading to the Frame Former to the Eth Subsystem
+
+%There are two major tasks that the FPGA has to achieve. First, It has to serialize the \axifull~ channels to a single \axistream~ channel.
+The FPGA has 4 major tasks: redirecting memory transactions from APU to DDR memory, serializing of \axifull~ to \axistream~, forming an ethernet frame, and correctly using the ethernet module to send packets. We created the Orchestrator module and the FrameFormer module to utilize the Xilinx-provided 10g/25g ethernet subsystem (XES) module. We shall refer to all modules collectively as the EthHelper.
+
+The Orchestrator imposes a simple fair scheduler to schedule up to 5 submodules to serialize the \axifull~ channels (e.g. AR, AW, R, W, B) to a single \axistream~ channel. Furthermore, the Orchestrator was architected to be modular, allowing the creation of submodules that address other protocols that implement handshaking. For a proof of concept, we constructed the AR and AW submodules to give us metadata consisting of transaction type, AXI ID, Burst Length, and a clock-based timestamp. The other channels are connected to passthrough dummy modules that allow uninterrupted execution, yet the scheduler is implemented for all 5 submodules to work. The current iteration of the Orchestrator requires a source and target that communicates through \axifull~ to generate understandable \axistream~ outputs.
+
+The FrameFormer (FF) is a custom FIFO module that allows configurable ethernet packet arguments (except for 802.1Q tag and CRC) to frame and send incoming \axistream~ data. The FF is internally split into two parts: the FrameFormerSubordinate (FFS) and the FrameFormerManager (FFM). The FFS provides a shifting register to buffer and send all incoming data for the FFM. the FFM provides the control outputs for the XES and will create and size the ethernet frame with FFS data and inputs given. The mechanism is as follows: FFS will wait for a single \axistream~ burst to write into the shifting register, upon receiving the FFS will initiate the FFM to output all parts except payload to the XES, after the FFM will receive all data within the FFS shifting register until packet size is reached, once the packet size is reached it will either idle or redo the cycle depending if there is still more data.
+
+
+% The Orchestrator imposes a simple fair scheduler to schedule generic submodules to serialize the AXIFULL channels (e.g. AR,AW.R.W.B) to a single AXIStream channel in a 
+% transparent matter (i.e. Transparent Snooping). For the proof of concept we constructed the AR and AW submodules to give us metadata (e.g. transaction type, AXI ID, Burst Length, and a timestamp) while the other channels are passthrough dummy modules that allow uninterrupted execution. 
+
+
+
+\chapter{Implementation Details}
+%should I also mention the details of the link medium e.g. optical cables and the sfp+ transceivers?
+
+%quick question to myself: I Know that the dac did not work in the very start... but how exactly did it not work?????
+\input{3_Implementation-Eval/Subscriber_Details}
+\input{3_Implementation-Eval/ZCU_Details}
+\input{3_Implementation-Eval/FPGA_Details}

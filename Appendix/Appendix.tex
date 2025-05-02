@@ -1,0 +1,282 @@
+\chapter{Additional Results}
+\label{appendix}
+\thispagestyle{myheadings}
+
+
+\input{Graph_Tables/SDVBS_sim_fast_no_contention.tex}
+
+\input{Graph_Tables/SDVBS_NEW.tex}
+
+\begin{figure}%
+    \centering
+    \subfloat[\centering without interference]{{\includegraphics[width=\linewidth]{imgs/tracking_scatterplot_no_interference.png} }}%
+    \qquad
+    \subfloat[\centering with interference]{{\includegraphics[width=\linewidth]{imgs/tracking_scatterplot_3_core_interference.png} }}%
+    \caption{tracking with sim image size}%
+    \label{fig:tracking}%
+  \end{figure}
+
+  \begin{figure}%
+    \centering
+    \subfloat[\centering without interference]{{\includegraphics[width=\linewidth]{imgs/mser_scatterplot_3_core_interference.png} }}%
+    \qquad
+    \subfloat[\centering with interference]{{\includegraphics[width=\linewidth]{imgs/mser_scatterplot_3_core_interference.png} }}%
+    \caption{mser with sim image size}%
+    \label{fig:mser}%
+  \end{figure}
+
+\begin{figure}
+  \includegraphics[angle=90,width=\linewidth,height=20cm]{imgs/Tested_Debug_Design.png}
+  \caption{Entire PL Design used for Debugging and Testing}
+  \label{fig:entire_test_pl_design}
+\end{figure}
+
+% \section{Code Snippets}
+% This section contains code snippets from the implementation of key components in the system.
+
+% \subsection{Orchestrator Control Logic}
+% The following code snippet shows the control logic of the Orchestrator that manages state transitions and fair scheduling between submodules:
+
+% \begin{lstlisting}[language=Verilog, title=Orchestrator Control Logic]
+% genvar k;
+%   generate
+%    for (k = 0; k < channels; k++) begin
+%       //Make first encoding all 0 for NONE state
+%       if(k>0)begin
+%         assign encodings[k] = {{channels{1'b0}} | {1'b1}}<<k;
+%       end
+%       else begin
+%         assign encodings[k] = {channels{1'b0}};
+        
+%       end
+%    end
+%    endgenerate
+
+%         assign submodule_data[0]=0;
+%         assign submodule_in_progress[0]=0;
+%         assign submodule_last[0]=0;
+%         assign submodule_valid[0]=0;
+%         assign resets[0]=1;
+%         assign submodule_transaction_length[0]=0;
+%         //assign submodule_resets[0]=0;
+
+%   reg [5:0] transaction_length;
+%   //stateChanger!
+%   integer i=0;
+%   always @(posedge clk) begin
+%     if (!resetn) begin
+%     //last_index<=0;
+%     State<=0;
+%     timestamp<=0;
+%     end
+%     else begin
+%       //if the state that we were in last is still performing a transaction and/or downstream is not ready then do not change states 
+%       if (~submodule_in_progress[State] & transaction_length==0)  begin
+%         //check if any submodules have data pending
+%         if(|submodule_valid)begin
+%           //change state to the next submodule that has valid data waiting to be sent
+%           for (i = 1; i <=channels; i++) begin 
+%             //explicitly check to wrap around when checking who is the first valid submodule
+%             if (submodule_valid[(State+i>channels) ? (State+i-channels):(State+i)])begin
+%                //change the state when the first valid submodule is found
+%                State<=(State+i>channels) ? (State+i-channels):(State+i);
+%                break;
+%             end
+%           end
+%         end
+%         //if no submodule ready, then switch to the NONE State
+%         else begin
+%           State<=0;
+%         end
+%       end
+%       //state is in progress. update something 
+%       else begin
+%         State<=State;
+%       end
+%       timestamp<=timestamp+1;
+%     end
+%   end
+% \end{lstlisting}
+
+% \subsection{Orchestrator Dataflow Logic}
+% The following code snippet shows the dataflow logic of the Orchestrator that handles the \axistream~ interface and submodule orchestration:
+
+% \begin{lstlisting}[language=Verilog, title=Orchestrator Dataflow Logic]
+%  reg started;
+%   //DATAMOVER!
+%   int j;
+%   //this block will handle AXISTREAM and Submodule Orchestration
+%   always @(posedge clk) begin
+%     if(!resetn)begin
+%       Orchestrator_ready<=encodings[0];
+%       stream_tdata<=0;
+%       stream_tlast<=0;
+%       stream_tvalid<=0;
+%       transaction_length<=0;
+%       started<=0;
+%     end
+%     else begin
+%       if(State!=0 & stream_tready)begin
+%         if(transaction_length>=1 & started)begin
+%           //start the transaction
+%           Orchestrator_ready<=encodings[State];                             
+%           stream_tdata<=submodule_data[State];
+%           stream_tlast<=submodule_last[State];
+%           stream_tvalid<=1;
+%           transaction_length<=transaction_length-1;
+%         end
+%         else if (transaction_length==0 & started) begin
+%           Orchestrator_ready<=encodings[0];
+%           stream_tdata<=0;
+%           stream_tlast<=0;
+%           stream_tvalid<=0;
+%           transaction_length<=0;
+%           started<=0;
+%         end
+%         else if (!started & submodule_valid[State])begin
+%           //grab the length
+%           transaction_length<=submodule_transaction_length[State];
+%           started<=1;
+%         end
+        
+%       end
+%       else begin
+%         Orchestrator_ready<=encodings[0];
+%         stream_tdata<=0;
+%         stream_tlast<=0;
+%         stream_tvalid<=0;
+%         transaction_length<=0;
+%         started<=0;
+%       end
+%     end
+%   end
+% \end{lstlisting}
+
+% \subsection{FrameFormer Subordinate Logic}
+% The following code snippet shows the core functionality of the FrameFormer Subordinate (FFS) that provides a shifting register to buffer incoming data:
+
+% \begin{lstlisting}[language=Verilog, title=FrameFormer Subordinate Logic]
+%     always @ (posedge ACLK)begin
+%         if(!ARESETN)begin
+%             tail <= 0;
+%             for(i=0;i<MAX_INTERNAL_SPACE;i=i+1)begin
+%                 tempReg[i]<={((OUTPUT_WIDTH)){1'b0}};
+%             end
+%             delayedOut<=0;
+%             counterPulseOutReg<=0;
+
+%         end
+%         else begin
+
+%             if(InputCondition & !OutputCondition)begin
+%                 tempReg[tail]<=S_AXIS_tdata;
+%                 tail<=tail+1;
+%                 counterPulseOutReg<=0;
+%             end
+%             else if(OutputCondition & !InputCondition)begin
+%                 shiftandOutput();
+%                 if (tail!=0)
+%                     tail<=tail-1;
+%                 delayedOut<=tempOut;
+%                 counterPulseOutReg<=1;               
+%             end
+%             else if(OutputCondition & InputCondition)begin
+%                 shiftOutputInsert();
+%                 if(empty)
+%                     tail<=tail+1;
+%                 else
+%                     tail<=tail;
+%                 delayedOut<=tempOut;
+%                 counterPulseOutReg<=1;
+%             end
+%             else begin
+%                 for(i=0;i<MAX_INTERNAL_SPACE;i=i+1)begin //make every register 0 to avoid a floating register
+%                     tempReg[i]<=tempReg[i];
+%                 end
+%                 delayedOut<=tempOut;
+%                 counterPulseOutReg<=0;
+%             end
+%         end 
+        
+%     end
+% \end{lstlisting}
+
+% \subsection{FrameFormer Manager Logic}
+% The following code snippet shows the core functionality of the FrameFormer Manager (FFM) that handles the creation and sizing of ethernet frames:
+
+% \begin{lstlisting}[language=Verilog, title=FrameFormer Manager Logic]
+% always @ (posedge ACLK)begin
+%         if(!ARESETN)begin
+%             init();
+%         end
+%         else if(M_AXIS_tready || state==0)begin
+%             if(state==Packet_Size)begin//last
+%                 M_AXIS_tlast<=1;
+%                 state<=state+1;
+%             end
+%             else if (state>Packet_Size) begin
+%                 M_AXIS_tvalid<=0;
+%                 M_AXIS_tlast<=0;
+%                 state<=0;
+%             end
+%             else if (state!=0 )begin
+%                 M_AXIS_tvalid<=1;
+%                 state<=state+1;
+%             end
+%             else if (state==0 & !is_empty)begin
+%                 state<=state+1;
+%                 M_AXIS_tvalid<=1;
+%             end
+%         end
+%         else
+%             state <= state;
+% end
+   
+%    always @ (posedge ACLK) begin
+%         if(!ARESETN)begin
+%             DataInit();
+%             counterPulseOutReg<=0;
+%         end
+%         else if(M_AXIS_tready || state==0)begin
+%             if(state==Packet_Size)begin 
+%                 M_AXIS_tdata <= 64'h5704;
+%                 M_AXIS_tkeep <= 8'h07;
+%                 counterPulseOutReg<=0;
+%             end            
+%             else if (state==0 || state>Packet_Size)begin
+%                 M_AXIS_tdata[63:48] <= Source_Address[15:0];
+%                 M_AXIS_tdata[47:0] <= Destination_Address;
+%                 M_AXIS_tkeep <= 8'hFF;
+%                 counterPulseOutReg<=0;
+%                 end
+%             else if (state==1)begin
+%                 M_AXIS_tdata[63:48] <= SyncWord;
+%                 M_AXIS_tdata[47:32] <= Link_Type;
+%                 M_AXIS_tdata[31:0] <= Source_Address[47:16];
+%                 M_AXIS_tkeep <= 8'hFF;
+%                 counterPulseOutReg<=0;
+%                 end
+%             else if (state>1 & state<Packet_Size)begin
+%                 M_AXIS_tdata <= Input_Data;
+%                 M_AXIS_tkeep <= 8'hFF;
+%                 counterPulseOutReg<=1;
+
+%             end
+
+%         end
+%         else begin
+%             M_AXIS_tdata <= M_AXIS_tdata;
+%             counterPulseOutReg<=0;
+            
+%         end
+%     end
+% \end{lstlisting}
+
+
+\begin{figure}%
+  \centering
+  \includegraphics[scale=0.75]{imgs/ddr4specs.png}
+  \caption{DDR4 Memory speeds and latencies}%
+  \label{fig:ddr4specs}%
+\end{figure}
+

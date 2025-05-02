@@ -1,0 +1,12 @@
+% ABSTRACT
+
+% Have you ever wondered why this is called an \emph{abstract}? Weird thing is
+% that its legal to cite the abstract of a dissertation alone, apart from the
+% rest of the manuscript.
+
+% old abstract below 
+
+Modern systems are approaching exceedingly complex designs as manufacturers are incorporating heterogeneous CPU architectures, hardware accelerators, and specialized components to address the growing amount of raw data input and the need for diverse computing resources.
+However, the cost of complexity has exacerbated issues with security, power efficiency, and temporal predictability. The common denominators are a lack of understanding and limited monitoring of the complex interplay between software and hardware components. Efforts have been made to address these pitfalls by introducing methods such as software/hardware containerization, optimized schedulers, and software standards/certifications. These methods have shown considerable improvements in strengthening the security properties of complex systems, achieving power trade-offs, and mitigating key sources of temporal non-determinism. Recent trends in computing models have given ground for new techniques that increase the amount of introspection in complex systems. In particular, given the rise in popularity of programmable logic, vendors are manufacturing tightly coupled FPGAs co-located with traditional compute clusters expanding the hardware/software co-design opportunities with incredible flexibility. We postulate that this model enables remote access to metadata and data traces that are historically confined on-chip.
+
+The proposal of this thesis is to design, implement, and evaluate proof-of-concept mechanisms with a twofold goal. First, we aim to devise a low-latency non-intrusive mechanism to monitor and/or manipulate information (e.g., about memory transactions, code execution, etc.) flowing through on-chip buses. Second, we tackle the challenge of forwarding data obtained through the first mechanism to a remote node via a dedicated high-bandwidth, low-latency interface. Appropriate packetization techniques are explored accordingly with compression given consideration. Said mechanisms enable novel paradigms for local and remote security threat identification and mitigation of edge systems. Furthermore, it could support complex remote live workload analysis with the objective of (1) achieving better power efficiency and (2) to drive local resource management and scheduling policies to achieve temporal determinism, to name a few.

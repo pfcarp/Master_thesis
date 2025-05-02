@@ -1,0 +1,51 @@
+%how in-depth should I go? 
+
+%https://docs.amd.com/r/en-US/ug1085-zynq-ultrascale-trm/100G-Ethernet
+
+%https://docs.amd.com/r/en-US/ug1085-zynq-ultrascale-trm/Interlaken
+
+%https://docs.amd.com/r/en-US/ug1085-zynq-ultrascale-trm/GTH-and-GTY-Transceivers
+
+%things I can mention 
+% additional hardware support for the 8B/10B, 64B/66B, or 64B/67B encoding schemes to provide a sufficient number of transitions. this refers to what actually attaches to the sfp+ cages
+\section{FPGA In-depth view}
+%go over zcu102 FPGA connections and resources
+
+\subsection{\axifull~ to \axistream~ translation}
+%Highlight the problem with serializing 5 channels and the FSM involved to make that happen
+% To comply with the available Xilinx Ethernet subsystem module would necessitate serializing the multiple channels of \axifull~
+The Xilinx Ethernet Submodule (XES) used for this preliminary study has the datapath for RX/TX built as an \axistream~ interface. Along with the limitation of 4 physical ports for the XES to utilize, there required a serializer to  convert the 5 channels of \axifull~ into a single \axistream~ channel. This responsibility formed into the Orchestrator module.
+
+The module itself is quite simple and is composed of a simple round-robin scheduler and a finite state machine (make reference and image) internally with output signals to actuate sub-modules, which the end user could create, that handled the interface responsibilities.  Each submodule is responsible for a single channel on an interface. The submodules send up information of valid and ready signals, in progress status, transaction length, along with metadata and data to the Orchrestrator. The Orchestrator's passes down resets, clock, and \axistream~ ready signals to the submodules. The Orchestrator uses a set of encoding masks that allow the proper control for all modules at in a single clock cycle, so that the proper submodule can unblock a pending transaction. The encoding mask design choice was made to retain the lowest channel transaction latency possible. The Orchestrator was also made with the intent of an easily modifiable (offline or online) and understandable wrapper and framework for any serialization to \axistream~. 
+
+Given a simple assumption that the downstream \axistream~ is always ready. We can formulate a simple equation for the longest wait time that one module needs to wait to unblock. Given $N$ enabled submodules and a function $Burst\_Length()$ which gives the transaction length for the  $n\_i$  we can make ~\ref*{eq:orchestrator_latency}:
+\begin{equation}
+    \sum_{n=1}^N 2*Burst\_length(n_i)+2*N
+    \label{eq:orchestrator_latency}
+\end{equation}
+
+Where the longest latency will be for the last submodule as it will have to wait the orchestrator to send all metadata and data from each burst of each submodule, with the added overhead of enabling and receiving data from each submodule.
+
+
+\subsection{Frame Former}
+%Lowest latency means I have to send packets the second I get info and decouple the last signals
+This module allows the decoupling of signals and configuring data link layer parameters. The FrameFormer comprises a FrameFormerSubordinate (FFS) and the FrameFormerManager (FFM). 
+
+The FFS submodule provides a shifting register array (that is user-defined in length) to buffer incoming data from the Orchestrator in order to minimize the amount of blocking the downstream sending mechanisms present. The blocking may come from frame-forming actions (e.g., sending start of frame and sending the end of frame) to physical module or protocol actions (inter-frame gap wait, resets on error, etc). 
+The initial motivation for using a shift register was to have the latest data on a wire and minimize the logic to refresh the data. In comparison, a traditional approach would have an additional register to store the output, whereas we intended the first register of the shifting register array to uphold this responsibility. This choice allowed all logic to revolve around the single object of the shifting register. It may have only had a slight clock difference. %Still, part of implementing this was a learning experience on how to initially code in SystemVerilog and rework the execution idea from lines of code to clock-based actuation.
+
+FFM is a simpler module that executes the actual framing of a packet and sends the correct signal to the XES for proper transmission. Furthermore, this module allows the users (and in the future programs) to select the parameters of the ethernet frame (e.g. source/destination address, ethernet type, and frame length) to other parameters such as sync words (i.e. to show start and end of FPGA stream) via configuration ports. 
+
+\subsection{10g/25g Ethernet Subsystem}
+%IEEE Std 802.3ba compliant physical interface for 100gb/s
+To facilitate testing the Xilinx 10g/25g Ethernet module was employed for availability and documentation purposes. It does require an additional license for xxv-ethernet-3.1 which comes free of cost yet is only available for 180 days. 
+The module has an \axifull~ interface for configuration of the MANY options. However, the default module configuration is ready to transmit (given the correct signaling) data. Furthermore, there are two \axistream~ interfaces for rx/tx. 
+
+
+
+%Worst Negative slack 1.751ns 
+%Worst Hold Slack 0.01ns
+%Worst Pulse Width slack 0.304ns
+%design was synthesizable with the Orchestrator at 300MHz but did not work correctly when switching Petalinux versions
+
+

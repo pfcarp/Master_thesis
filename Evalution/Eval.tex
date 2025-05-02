@@ -1,0 +1,141 @@
+\chapter{Evaluation}
+\label{chapter:Eval}
+%flow
+%talk about the limitations: parser needs to be redone, reciever is overwhelmed
+% there is no control flow (which could not impact alot)
+%FF has a chance to split Address and metadata, other submodules not implemented 
+%Most performance hits come from crossing PE+PL boundary
+
+
+% verification of the Orchestrator and FF functionality (i.e show ILA and explain) 
+% talk about preliminary benchmarks with Isolbench/bandwidth and how the results scale
+%lead into pragmatic tb of sd-vbs and its results
+%show the more complete graphs of the benchmarks and compare with
+
+
+\begin{figure}
+    \centering
+    \includesvg[scale=0.5]{imgs/General_Evaluating_Infrastructure.drawio.svg}
+    \caption{General evaluation infrastructure for evaluation experiments}
+    \label{fig:Memory_Layout}
+\end{figure}
+
+\subsection{Evaluation Infrastructure}
+% The behavioral analysis was analyzed using simulations for the preliminary stages and later with a System Integrated Logic Analyzer (ILA) coupled with additional debug pins and counters. \cite{RT-Bench} provided the software infrastructure to monitor benchmark metrics of \cite{SD-VBS} and programs in \cite{Isolbench}, along with the necessary mechanisms to reallocate the heap to a specified memory region or location. Additionally, as stated in \ref{ZCUDetails}, a kernel module was implemented to allow unaligned access and caching to the FPGA memory region. There will be three physical address apertures that will point to physical DRAM, DRAM loopback, and EthHelper \ref{fig:Memory_Layout}.
+
+The behavioral analysis methodology incorporated simulations during preliminary stages, followed by implementation of a System Integrated Logic Analyzer (ILA) in conjunction with supplementary debug pins and counters. The software infrastructure provided by \cite{RT-Bench} enabled monitoring of benchmark metrics for \cite{SD-VBS} and programs in \cite{Isolbench}, while simultaneously providing the requisite mechanisms for heap reallocation to specified memory regions. Furthermore, as stated in Section \ref{ZCUDetails}, a kernel module was implemented to facilitate unaligned access and caching to the FPGA memory region. Three physical address apertures were established, directing to physical DRAM, DRAM loopback, and EthHelper, as illustrated in Figure \ref{fig:Memory_Layout} with a mechanism similar to \cite{RoozkhoshPLIM} using a modified UARTDriver module from \cite{ciraolo2025} that we will refer to as the \emph{Address Modifier}.
+
+\subsection{FPGA Utilization and Limits}
+%how much resources am I using per item and how much delay each component uses
+%also say that this is just with AR and AW monitoring
+%mention clock
+The design was synthesized with Vivado 2019.2 with a clock frequency of 156.25MHz for the dataflow path and 75MHz for the control path. The overall utilization \ref{tab:overall_util} for the tested design is quite light despite the additional debug infrastructure. Furthermore, the core components to enable AoE use significantly less resources \ref{tab:core_util}.
+
+\input{Graph_Tables/Overall_Util} 
+\input{Graph_Tables/Core_Component_Util.tex}
+
+\subsection{Verification of Operation Characteristics}
+% Testbenches within Vivado were created to test the custom modules. The AXI Verification IP (VIP) modules were utilized to generate and check \axifull and \axistream transactions. The primary focus of the simulation testing observing and optimizing the Orchestrator state switching and latency of transaction handling. \ref{fig:Orchestrator_Verification} show the correctness of the fsm shown in \ref{chapter:details} hold. Furthermore, the simple bounding equation in \ref{chapter:details} seems consistent with the System ILA capture.
+
+Testbenches were developed within the Vivado environment to evaluate custom modules. AXI Verification IP (VIP) modules were employed to generate and validate \axifull~ and \axistream~ transactions. The primary objectives of simulation testing were to observe and optimize Orchestrator state transitions and transaction handling latency. Figure \ref{fig:Orchestrator_Verification} demonstrates the correctness of the Orchestrator given single and multiple concurrent channel transactions. Additionally, the simple bounding equation proposed in Section \ref{chapter: implementation_overview} demonstrates consistency with System ILA capture data and simulation.
+
+%make fsm of orchestrator in details section
+%maybe include the code in details section
+%make equation to bound the longest a transaction could wait
+
+
+
+\begin{figure}
+    \centering
+    \includesvg[scale=0.25]{imgs/Orch_FUNC.drawio.svg}
+    \caption{Analysis of the Orchestrator functionality}
+    \label{fig:Orchestrator_Verification}
+\end{figure}
+
+\subsection{Preliminary Evaluation}
+%bandwidth one shot -f 99 -m 12MB -c1 for a baseline
+%gave us 290063 packets of 1035bytes in length and program executed in 0.21111 seconds
+%through calculations that presents with a medium throughput of 10.5953Gb/s
+% and an application throughput reported as 277.5679MB/s
+
+% A baseline application and medium throughput were established using Isolbench's bandwidth program. The test was conducted using a one-shot configuration on a FIFO scheduler with priority 99 and a memory size of 12MB, while pinned to CPU \#1. The test was conducted on three non-cached memory regions: directly in DRAM, DRAM loopback in the FPGA, and the EthHelper. From this experiment, we can calculate the sustained throughput of the XES using the observed outputs of the counters and the benchmark. Results show a transmission of 290,063 packets, each 1035 bytes in length, with the program completing its execution in 0.21111 seconds. Subsequent calculations revealed a medium throughput of 10.5953 Gb/s, while the application throughput was reported as 277.5679 MB/s. 
+
+Baseline application and medium throughput metrics were established utilizing Isolbench's bandwidth program. The experimental protocol employed a one-shot configuration on a FIFO scheduler with priority 99 and memory allocation of 12MB, while constraining execution to CPU \#1. The experiment was conducted across three non-cached memory regions: direct DRAM access, DRAM loopback in the FPGA, and the EthHelper. This methodological approach facilitated calculation of the sustained throughput of the XES through analysis of counter outputs and benchmark metrics. Empirical data revealed transmission of 290,063 packets, each comprising 1035 bytes, with program execution completing in 0.21111 seconds. Subsequent computational analysis yielded a medium throughput of 10.5953 Gb/s, with application throughput recorded at 277.5679 MB/s.
+
+
+% The results shown in \ref{fig:bandwidth_result} demonstrate that the majority of the penalty in throughput lies in crossing the  PE/PL boundary  given the similar throughput of EthHelper and DRAM loopback. The throughput difference is due to the difference in clock speeds and longer critical path. Moreover, during runtime, the FF buffer was seldom utilized over 3 buffer places, indicating that the performance bottleneck lies in primarily in the Orchestrator. 
+
+The results depicted in Figure ~\ref{fig:bandwidth_result} demonstrate that the predominant performance penalty is attributable to traversing the Processing Element/Programmable Logic (PE/PL) boundary, as evidenced by comparable throughput measurements between EthHelper and DRAM loopback configurations. The observed throughput differential can be attributed to disparities in clock frequencies, power domains, and extended critical path length. Moreover, runtime analysis revealed minimal utilization of the FrameFormer buffer, rarely exceeding three buffer allocations, indicating that the performance bottleneck resides primarily within the Orchestrator component.
+
+
+\begin{figure}
+            \centering
+            \includesvg[scale=0.50]{imgs/csv_analysis_graph_bandwidth.svg}
+            \caption{Bandwidth.c execution time comparison between different memory routes}
+            \label{fig:bandwidth_result}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includesvg[scale=0.50]{imgs/csv_analysis_graph_bandwidth_throughput.svg}
+  \caption{bandwidth throughput comparison between different memory routes.}
+  \label{fig:bandwidth_throughput_result}
+\end{figure}
+%add reference to the bandwidth bar graph
+%explain that a majority of the performance penalty come from crossing the PE+PL boundary
+%eloborate the the FF buffer is constantly under utilized
+%potentially use queueing theory to analyze
+
+%draw a diagram of the memory layout!!!!!!!!
+
+\subsection{Pragmatic Benchmarks}
+
+%\cite{SD-VBS} will serve as the basis for pragmatic benchmarks as it was aimed to provide realistic, real-time workloads. We use a kernel module to memremap\(\) the memory regions within the FPGA with the CACHE\_WB flag. Important to note is the limitation of the module and how much memory we could have allocated for said pragmatic benchmarks, as we could not map greater than a 3 megabyte range, even though we have tested with the whole 256 megabyte range reserved and mapped in the DTB. Consequently, this forced our testing to be limited to a small image sizes of sim and sim\_fast. Therefore, programs that are memory-bound due to the intense memory operations have a limited range in observability but are correct for the given image sizes.  In the included benchmark, we have selected a balance between memory-intensive and compute-intensive programs to demonstrate the impact on performance that the Ethhelper would have during normal workloads. 
+
+The study utilizes ~\cite{SD-VBS} as the foundation for pragmatic benchmarks, selected for its provision of realistic, real-time workloads. A kernel module was implemented to perform memremap\(\) operations on FPGA memory regions using the CACHE\_WB flag. It is imperative to acknowledge the constraints of the module and the associated limitations on memory allocation for pragmatic benchmarks; specifically, mapping capabilities were restricted to a maximum of 3 megabytes, despite a 256 megabyte range reserved and mapped in the Device Tree Blob \(DTB\). Consequently, experimental evaluations were constrained to small image sizes categorized as "sim" and "sim\_fast." This limitation particularly affects programs characterized by memory-bound operations due to intensive memory transactions, restricting observability of larger image dimensions. The benchmark selection incorporates a balanced distribution between memory-intensive and compute-intensive programs to comprehensively demonstrate the performance impact of the EthHelper during representative workloads.
+
+% Overall, our module demonstrates what is expected of performance. Programs memory intensive programs, such as mser, disparity, and tracking, show the expected behavior of memory-bound computations as memory transactions need to pay the initial large penalty of crossing the power domains. The statistical significance of the standard deviation between ETH helper and loopback in this experiment is not shown, but does exist as the orchestrator has to block other channels for a single channel's operation to pass through. 
+
+The module's performance aligns with expectations~\ref{fig:sdvbsresult-sim}~\ref{fig:sdvbsresult-sim-fast}. Memory-intensive applications such as mser, disparity, and tracking exhibit characteristic behavior of memory-bound computations, wherein memory transactions incur substantial penalties associated with power domain transitions. While statistical significance of standard deviation between EthHelper and loopback configurations is not explicitly demonstrated in this experiment, differences are attributable to the Orchestrator's operational requirement to block alternative channels during individual channel transactions.
+
+
+\begin{figure}
+  \centering
+  \includesvg[scale=0.50]{imgs/csv_analysis_graph_sim.svg}
+  \caption{SD-VBS suite execution time comparison between different memory routes with sim image size}
+  \label{fig:sdvbsresult-sim}
+\end{figure}
+
+\begin{figure}
+\centering
+\includesvg[scale=0.50]{imgs/csv_analysis_graph_sim_fast.svg}
+\caption{SD-VBS suite execution time comparison between different memory routes with sim_fast image size}
+\label{fig:sdvbsresult-sim-fast}
+\end{figure}
+
+\subsection{Tracing and Visualiization}
+% The tracing and visualization infrastructure was facilitated by tcpdump, a common cli program that uses libpcap, and custom Python scripts. Due to the limitation in both hardware and software of the evaluation infrastructure, there are frequent gaps and misinterpretations of data done by the Python scripts, which parse and visualize out the data captured by the packets from tcpdump. However, this issue does not affect the core infrastructure on the FPGA, as that is functioning correctly without losing data. Furthermore, due to the kernel module, accesses in memory are limited to cache line sizes. To limit the amount of buffer overruns on the Nick, a bandwidth run of greater executing time runs on every core except for the main core that runs the application for observing. This is to cause memory contention which slows down the memory subsystem in order for the requests of the observing program to be answered with less frequency. 
+
+The tracing and visualization infrastructure leverages tcpdump, a conventional command-line interface program utilizing libpcap, in conjunction with custom Python scripts. Hardware and software limitations within the evaluation infrastructure result in occasional data discontinuities and interpretative inaccuracies in the Python scripts responsible for parsing and visualizing data captured from tcpdump packets. It should be emphasized, however, that these limitations do not compromise the core FPGA infrastructure, which maintains data integrity without information loss. Furthermore, the implemented kernel module constrains memory accesses to cache line dimensions (to which the orchestrator is capable of byte alignment and recording). To mitigate Network Interface Controller buffer overruns, memory bomds of extended execution duration are conducted concurrently on all cores except the primary core executing the application under observation. This methodology deliberately induces memory contention to reduce the operational frequency of the memory subsystem, thereby decreasing the frequency of responses to requests from the program under observation. Yet, We did gather a result for the ground truth of the memory access with a small memory size for bandwidth.c \ref{fig:example_trace_visualized}.
+
+% For example, if we take disparity as our program under observation, running with and without interference can be seen clearly as the amount of data captured with interference on the memory subsystem allows us to drop fewer packets, as our NIC buffer is not being overrun due to the infrequent memory transaction response. The same can be said for other applications such as mser and tracking. 
+
+This methodological approach is exemplified through analysis of the "disparity" program under observation. Execution with and without interference demonstrates markedly different data capture characteristics; specifically, interference within the memory subsystem reduces packet loss due to diminished NIC buffer overruns resulting from decreased memory transaction response frequency. Comparable effects are observable in alternative applications such as mser~\ref{fig:mser} and tracking~\ref{fig:tracking}.
+
+
+
+
+\begin{figure}%
+  \centering
+  \subfloat[\centering without interference]{{\includegraphics[width=0.45\linewidth]{imgs/disparity_scatterplot_no_interference.png} }}%
+  \qquad
+  \subfloat[\centering with interference]{{\includegraphics[width=0.45\linewidth]{imgs/disparity_scatterplot_3_core_interference.png} }}%
+  \caption{disparity with sim image size}%
+  \label{fig:disparity}%
+\end{figure}
+
+
+\subsection{Limitations}
+% The core infrastructure of this work (e.g. Orchestrator and FrameFormer) requires minute efforts to fine-tune and implement functionalities. The framework of the Orchestrator is complete, yet submodules for the R, W, and B channels need to be implemented for full \axifull tracing. The FF was constructed to send information immediately, even if padding was required to fulfill the minimum packet length. This characteristic leads to the potential of metadata and address being split amongst packets, meaning processing cannot be multi-threaded as packets are not information complete (i.e., not self-contained), and drops in packets would lead to cascading effects depending on parsing complexity. Furthermore, the FF has no transmission flow control, which has caused NIC buffer overrun issues with our subscriber. Therefore, the simple parser has issues identifying or dropping portions of data. This leads to the results not reflecting the ground truth of the system.
+
+While the framework of the Orchestrator is complete, implementation of submodules for the R, W, and B channels remains necessary for comprehensive \axifull~ tracing. The FrameFormer architecture was designed to transmit information immediately, even when padding was required to fulfill minimum packet length requirements. This design decision results in potential fragmentation of metadata and addressing information across multiple packets, thereby precluding multi-threaded processing as packets lack information completeness (i.e., they are not self-contained). Consequently, packet loss provokes cascading effects within parser logic. Furthermore, the absence of transmission flow control in the FrameFormer potentially triggers Network Interface Controller (NIC) buffer overrun issues with our subscriber. As a result, the simple parser demonstrates deficiencies in identifying or appropriately recovering fragmented data portions, leading to results that inadequately reflect the system's ground truth.

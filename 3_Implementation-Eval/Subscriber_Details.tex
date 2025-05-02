@@ -1,0 +1,62 @@
+\section{Subscriber In-depth view}
+\subsection{Memory and Buffers}
+%nic buffer, kernel buffer timers, kernel buffer, tcpdump
+% The subscriber should maximize all buffers and timers associated with packet analysis. 
+
+
+% There are two types of Buffers: the Hardware NIC Buffer (one for rx and tx) and buffer in the kernel. these buffers are necessary to bridge the potential difference in network speed and to align the data flow rate with the processing capabilities of the device, preventing loss of data and improving overall transmission efficiency. A larger buffer on the NIC allows for fewer interrupts going to the CPU and allows for jumbo frames (packets over 1500 Bytes defined by IEEE 802.3) which decrease protocol overheads. this may affect network latency however this work only deals with receiving and profiling. 
+
+% The kernel buffer allows the NIC to empty its buffer to receive more incoming packets. With a Kernel buffer too small the NIC would either overwrite the data on the NIC Buffer (NAPI) or thrashing (netif_rx()).
+% %the reason why packets drop on the nic I think is because of NAPI (read advantages) https://en.wikipedia.org/wiki/New_API
+% Importantly, the Network Interface Card (NIC) RX buffer size should be verified as the defaults are 256-1024 Bytes in contrast to the common maximum on 10Gbe NICs of 8192 Bytes. The Kernel Buffer should also be proportionately bigger. 
+%https://wiki.linuxfoundation.org/networking/kernel_flow
+
+Network data transmission relies heavily on buffering mechanisms to reconcile the asynchronous nature of network interfaces and host system processing capabilities. Two primary buffer types are employed: hardware-managed buffers within the Network Interface Card (NIC) and kernel-space buffers. These buffers serve a critical role in mitigating the performance disparity between network link speeds and the processing rate of the host system, preventing data loss and optimizing overall RX/TX efficiency. The hardware NIC buffer, typically one for transmit (TX) and one for receive (RX) operations, provides a temporary storage area for data awaiting processing. Increasing the size of the NIC RX buffer can significantly reduce the interrupt load on the host CPU, as fewer interrupts are required to signal per given packet amount. Furthermore, larger RX buffers enable the transmission and reception of jumbo frames (packets exceeding the standard IEEE 802.3 Ethernet frame size of 1500 bytes), which can reduce protocol overhead by consolidating multiple smaller packets into a single, larger frame. While increasing buffer sizes can improve throughput, it is important to acknowledge the potential impact on network latency, a factor not directly addressed within the scope of this research.
+
+The kernel buffer acts as an intermediary, facilitating the transfer of data from the NIC hardware buffer to the user application memory. Insufficient kernel buffer capacity can lead to two primary issues: NIC buffer overflow (occurs in Linux 2.6+ with New API (NAPI) implementation), where the NIC hardware buffer overwrites incoming data, or excessive kernel buffer thrashing, manifested as frequent calls to netif\_rx() for pre-NAPI implementations \ref*{fig:Network_Scheme_pre_2.6}, which both are indicative of a bottleneck.  The kernel buffer's size must be carefully considered in relation to the NIC's RX buffer size to ensure efficient data flow and prevent these detrimental effects.
+
+A significant performance consideration is the often default configuration of NIC buffer sizes.  Many network interfaces are configured with RX buffer sizes ranging from 256 to 1024 bytes, significantly smaller than the NIC's maximum buffer size of 4096-8192 bytes found on modern Ethernet NICs. Consequently, the kernel buffer must be proportionally sized to accommodate the increased data volume handled by the larger NIC RX buffer, ensuring a balanced and efficient data transfer pipeline.
+
+        \begin{figure}
+            \centering
+            \includegraphics[]{imgs/Linux-Network-Stack-RX-scheme-in-kernels-PlaceHolder.png}
+            \caption{Buffer usage in linux pre 2.6.}
+            \label{fig:Network_Scheme_pre_2.6}
+        \end{figure}
+        %add figure for post linux 2.6
+        
+\subsection{Parsing and visualization}
+% %tcpdump to parser (c++ -> python)
+% The software stack relies on tcpdump (a cli packet analyzer), two C++ programs for formatting and parsing the packets, and a python script to interpret and visualize the parsed data. Tcpdump happens during runtime of the program and the rest are executed offline (with respect to the program being monitored).
+
+
+% % ADDRESS 0000000870000008
+% % METADATA 40000035a637eaaa
+% % stream_type: 4
+% % axid: 0000035a
+ 
+%  The software stack relies on tcpdump (a cli packet analyzer), two C++ programs for formatting and parsing the packets, and a python script to interpret and visualize the parsed data. Tcpdump happens during runtime of the program and the rest are executed offline (with respect to the program being monitored). 
+
+% Traces from tcpdump are preprocessed by packetStripper.cpp to extract the raw hexadecimal data. Then packet_processor.cpp identifies identifying start and end phrases (user defined) of the FPGA data, removes padding, byte flips the data and arranges the data in a human-readable manner displaying address, metadata, and the decomposition of metadata (Axid, AXI burst length, transaction type, and clock cycle timestamp). Each one of the steps is saved into its separate file for ease 
+% % burst_length: 6
+% % timestamp: 37eaaa
+
+% Traces from tcpdump are preprocessed by packetStripper.cpp to extract the raw hexadecimal data. Then packet\_processor.cpp identifies identifying start and end phrases (user defined) of the FPGA data, removes padding, byte flips the data and arranges the data in a human-readable manner displaying address, metadata, and the decomposition of metadata (Axid, AXI burst length, transaction type, and clock cycle timestamp). Each one of the steps is saved into its separate file for ease of debugging and manipulation. After the processing of the trace, Mapper.py takes the arranged data and constructs two scatterplots that show transaction types throughout time on an address range (either at byte or page granularity).
+
+The data acquisition and analysis pipeline constructed for this research utilizes a combination of command-line tools and custom software programs. Packet capture is performed using tcpdump, a well-known command line packet analyzer, during the runtime of the publisher system application under observation. The subsequent processing and visualization of the data are executed offline. Furthermore, the process is not limited to this operation scheme.
+
+The proccessing of packets of the pipeline is handle by two C++ parsers: packetStripper.cpp and packet\_processor.cpp.The process starts with the preproccessing of raw packets captured by tcpdump  with packetStripper.cpp. This step extracts the raw hexadecimal data of the captured packet trace. Then packet\_processor.cpp identifies user-defined start and end delimiters within the FPGA data stream. This design choice of start and end delimiters allow identifying a complete and fully formed packet. After, packet\_proccessor.cpp performs several transformations: removal of inter-transaction padding, byte order inversion, and reformatting of the data into a human-readable structure. This structured data includes address information, metadata, and a decomposition of the metadata into fields such as AXI ID, AXI burst length, transaction type, and a clock cycle timestamp. To facilitate debugging and modularity, each processing stage is output to a separate file.
+
+% \todo[inline]{include a portion of both cpp code snippets to show the data flow and processing steps.}
+
+
+
+The final stage of the pipeline is implemented in Mapper.py, a Python script responsible for constructing the visualization of the processed data. This script uses the parsed and formatted data and generates two scatterplots. These scatterplots depict the distribution over time of transaction types across a defined address range, with the granularity of the address at byte-level and page-level.
+
+\begin{figure}
+            \centering
+            \includegraphics[scale=0.4]{imgs/scatterplot_write_200B_10iter.png}
+            \includegraphics[scale=0.4]{imgs/pages_scatterplot_write_200B_10iter.png}
+            \caption{Example of a FPGA trace visualized with data obtained by the subscriber}
+            \label{fig:example_trace_visualized}
+\end{figure}

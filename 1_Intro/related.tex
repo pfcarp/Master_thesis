@@ -1,0 +1,31 @@
+\section{Related Works}
+\label{sec:Related}
+% There are notable works that overlap with our current methods that provide similar results or techniques.
+
+
+%BBProf shares many similarities, at least in terms of the end goal, with a number of
+% well-established performance analysis toolkits. The survey in [3] provides a good overview of
+% popular toolkits such as Oprofile [ 7], Dprof [ 29 ], Zoom [31], DynamoRIO [ 5], Valgrind [ 27 ],
+% and Pin [ 23 ]
+
+%software profiling Valgrind, PIN,  
+% Works featuring PLs in networking applications work on lowering related overheads \cite{BrunellaHxdp}\cite{SidlerStrom}\cite{MizutaniOPTWEB} through the use of FPGAs relying on PCIE bus and software to communicate with the CPU cluster. 
+
+% flow is sw-> sw+hw -> hw -> programable logic for monitoring -> PL in networking and Remote Memory 
+
+% The ever-growing complexities of multi-core embedded computing platforms have exacerbated the challenges of observing temporal behaviors and performance characteristics of application sets on constrained platforms. The importance of such observability lies in the verification of a system's behavior and setting expected bounds when deployed into safety-critical or realtime realms. 
+
+Methods of system observability for developers and researchers are constantly under development and refinement, and have given us a myriad of SW and HW  implementations. 
+
+The software space has provided multiple frameworks and solutions to address the observability of applications at runtime over the decades. \cite{ScalesShasta} is an example of the earliest attempts at providing fine-grain memory access with low overhead. \cite{MemProfSurvey} provides a general overview of common modern memory profiling toolkits such as \cite{LUK-PIN} \cite{BrueningTDI} \cite{Valgrind}. These methods employ Dynamic Binary Instrumentation (DBI) to translate and instrument on the execution of a binary on the fly. This flexibility and low manual instrumentation are coupled with the immense effort of platform-specific porting and high runtime overheads resulting from context switches for each instrumented instruction. Furthermore, memory profiling with this class of profilers requires all memory space references to be instrumented.
+
+Other efforts in the software space aim to leverage baked-in hardware debug infrastructures to offload statistic tracking or trace capturing. Works such as \cite{RT-Bench} \cite{bellecAttackDetection} rely on Performance Monitoring Unit (PMU) \cite{ia64_swdev_vol3} \cite{aarch64_spec}, which keep track of hardware events such as retired instructions, cache and memory accesses, to profile an application at runtime with marginal overhead. \cite{chenTPA} relies on a combination of PMU and trace data by utilizing the ARM Coresight debug infrastructure \cite{CoreSight}, which exposes components such as the Trace Memory Controller (TMC)\cite{TMC} and Embedded Trace Macrocell (ETM)\cite{etm} for user configuration. This again allows one to achieve acceptable progress of an application despite contention through an added scope of observable events and statistics. The few limitations presented by this software and hardware combination are the predetermined events that can be monitored, the number of events that can be monitored concurrently, and the fetching blackout window needed to use the hardware.
+
+This overall trend of delegating tasks to hardware for monitoring or accelerating tasks has seen efforts flourish in the programmable logic space. Similar to \cite{chenTPA}, \cite{hoppe21} uses the Coresight infrastructure to monitor applications; however, it uses an FPGA to decrease the decoding time of the debug packets, since the dataflow can be understood and optimized within configurable hardware. In a similar effort to \cite{bellecAttackDetection}, \cite{Feng21} attempts to lower the latencies of detecting attacks on control flow integrity by using the same Coresight+FPGA combination to monitor an application CFI exclusively through hardware.
+
+The advancements in monitoring and profiling space have been improving the efficiency of singular embedded platforms by incorporating more hardware-level infrastructure to minimize latencies and overhead. Meanwhile, other spaces in the research community are seeing the applicability of remote resources \cite{AguileraVmWare}, and there have been recent efforts to adapt programmable logic to lower the overhead of these understood dataflows. \cite{MizutaniOPTWEB} proposed a fully connected network of tightly coupled FPGAs to provide significant cost reductions (e.g. packet processing time) for >100Gbps networks.~\cite{CalciuPberry} and \cite{SidlerStrom} are works that try to increase the efficiency of remote memory access through programmable logic, but in two distinct manners. \cite{SidlerStrom} is intended to expand Remote over Converged Ethernet (RoCEv2) semantics and introduce data-shuffling at the Network Interface Card (NIC) level to provide consistent and performant remote data traversal and retrieval. \cite{CalciuPberry} minimizes dirty data amplification and page faulting associated with remote memory by allowing an FPGA to track and monitor cache-coherent traffic for statistics that the host operating system can use.
+
+The overlap of a permutation of these efforts have resulted in similar works proposes remote solutions to traditionally local operations. \cite{C-Flat} and \cite{CFA+} propose remote checking of Control Flow Attestations in order to provide a scalable and secure platform. \cite{Basile2012} explores the space of remote-code integrity verification through the incorporation of an FPGA to generate CFA and harden distributed embedded systems. Further uses of FPGA in remote verification is explored in \cite{Aysu2016}, which proposes a remote integrity verification of the physcial system in which the FPGA is embedded. 
+
+Our work builds on the existing body of knowledge by proposing a novel approach to profiling and monitoring embedded systems through a combination of programmable logic and networking. 
+%(expand on this a bit more)

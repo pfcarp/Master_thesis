@@ -1,0 +1,33 @@
+\section{Motivation}
+%The initial effort of this work focused on bringing a low cost, low overhead memory profile that could be easily adapted to realtime embedded systems where resources are constrained and deadlines are crucial.
+
+%also the reality is there are a lot of accelerators out there directly interfacing with the datacenters intranet 
+
+Many hardware and software methods associated with hardware-level profiling involve a high cost of entry or significant overhead to operate. This high (either financial or compute) cost also applies to any method requiring higher information granularity. This work is geared toward addressing the gap between inflexible low-overhead hardware logic analyzers and malleable high-overhead software methods. The goal is to provide a means of analysis that can be handled remotely to alleviate the burdens on embedded systems in an effort to maintain real-time performance. This is achievable by utilizing a growing trend in COTS development boards that integrate a field-programmable gate array (FPGA) that can communicate with SoC components through high-speed buses. Furthermore, the exponential growth of networking speeds and latencies is minimizing the disparity between system buses and external communication. Coupling these two trends might allow us to expand the capabilities of a single system beyond the board by creating a link between system level mechanisms and mature networking infrastructure. 
+
+The goal is to provide an easily extendable, accessible, and low-cost hardware profiling solution, EthHelper, that can be used in embedded systems. This paper is structured to provide abstract design considerations, ZCU102 implementation specific details, and evaluation of the prototype. We provide realistic performance metrics using synthetic and pragmatic benchmarks for the system and demonstrate the practicality of our solution. Further, we want to motivate our application of EthHelper to works of control flow integrity (CFI) checks, security threat detection, and workload analysis.
+
+%Expand the idea of the interconnected systems and the need for more effective profiling techniques. Along with the intial quest of making an easily extendable, accessible, and low-cost hardware profiling solution that can be used in embedded systems.
+
+
+
+% \cite{SidlerStrom} pcie fpga as a nic to provide better rdma
+
+% \cite{AguileraVmWare} remote memory is more useful now with the networking infrastructure being fast and powerful
+
+% \cite{SchoinasFineControlDistSharedMem} old paper about Fine-Grain Access Control for Distributed Shared Memory
+
+% \cite{OliverIntelCCFPGA} putting fpga on coherent fabric (intel qpi) bypass pcie penalty of small packets
+
+% \cite{MizutaniOPTWEB} networking handled by group of fpgas
+
+
+
+% https://standards.ieee.org/wp-content/uploads/import/documents/other/eipatd-presentations/2020/D1-03-Cannon-Inter-processor-Connectivity-for-future-Centralized-Compute-Platforms.pdf  Microchip saying pcie gen 4/5 is the way to go for multi ecu systems
+
+
+% \newline\newline
+% vs
+% \newline\newline
+% The initial effort aimed to reduce the cost (e.g. monetary, overhead, implementation) of analyzing hardware-level data and providing a generic implementation for exporting bus-level memory transaction data onto an interface. Furthermore, given the modular and generic nature of the modules that were initially created, we could think beyond the limitations of exporting memory transactions and consider what kind of data to export and possible ways to use it.
+

@@ -1,0 +1,8 @@
+\section{ZCU Details}
+\label{ZCUDetails}
+
+\subsection{General Configuration}
+The ZCU102 has been configured to run Petalinux 2023.2 without modifications to the kernel or user applications. There is a modified device tree blob (DTB) that includes a modified Si570 frequency of 156.25MHz (per XES/IEEE specification) and multiple instantiations within the amba\_pl block for configuring the necessary clocks of the EthHelper. Additionally, there is a reserved memory region of 256MB in DRAM for testing purposes to avoid data collisions. 
+
+\subsection{Memory Alignment and Caching}
+The Orchestrator is capable of handling unaligned accesses without issue due to it being more of a passthrough/monitor module on the critical route. Simply, all transactions, given that components upstream and downstream of the Orchestrator work correctly together. However, the Cortex-A53, by default, is not configured to allow unaligned accesses in device memory or non-cacheable memory. Yet, this feature of unaligned access has been supported since ARMv6\cite{ARMv6M_Architecture_Reference_Manual}. This is corrected in two possible ways: modifications to the Memory Attribute Indirection Register (MAIR), or making the memory region cacheable. We chose for the latter as a colleague had a module from \cite{Izhbirdeev2024} that could be modified with ease with memremap() to allocate a 3MB range at the specific memory apertures of the FPGA module.

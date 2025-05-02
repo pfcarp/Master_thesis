@@ -1,0 +1,23 @@
+\chapter{Design}
+\label{chapter:design}
+\thispagestyle{myheadings}
+The following section provides an overview of the constraints and the requirements to achieve remote monitoring of hardware-level transactions with minimal impact. This section will provided the abstraction of \ref*{chapter: implementation_overview} and provide the design choices and backhground that influence the implementation of the system.
+
+
+\section{Network Design Overview}
+%The easiest thing to do as of 09/01/2024 is to broadcast the information out or send to a single node through mac. If using broadcast then the parsing nodes would be able to subscribe to this stream with a known source address. In the future I would probably adapt layer 3 protocols so I can use IP addresses.
+%if not using broadcast then it becomes a server client relationship where the client is the zcu and the server is the parser
+
+%I guess the reason I went with pub/sub is because there isnt really a feedback action in this system anyways. it just gets data and uses it but does not report anything back
+In this initial work two systems are connected through a high-speed, low latency link in a producer/consumer architecture and communicate ontop a protocol that abstracts the physical layer. The producer has the capability of sending frames of bus-level data (or copies) without kernel involvement, while the consumer receives, unpacks, and parses the frames to visualize the producer's memory transaction history for observability purposes. 
+%this sentence below sucks but I am trying to put together a vision where the producers are weak embedded platforms and the consumer, a luxury node, is powerful enough to handle at least not being overloaded by the stream of data. Furthermore since this project can be expanded to hand layer 3 communication, the notion of using a network switch to connect many to many or many to one is not absurd.
+This system is designed to work in a many-to-one or many-to-many model, as the consumers would be magnitudes more powerful than the producers to avoid possible bottlenecks and dropped packets.
+%The proposed system is intended to work with many producers and few consumers.
+%expand this when you can
+\subsection{Network Requirements}
+The network infrastructure must adhere to stringent requirements to meet the demanding needs of tapping into producer's on-chip high-speed system bus subsystem. A minimum bandwidth of 10Gbps is acceptable, for practical purposes \ref{fig:bandwidth_result}, to sustain the rapid data exchange demanded by such subsystems. %the problem I have with this statement is that its not necessarily because of the link that performance is lower. Also, the final clock is part of the problem (data plane stuck to 156.25 MHz at the final step)
+Additionally, latency must be kept below 1 $\mu$s to ensure swift communication and minimize delays in data transmission. By meeting these criteria, the network can seamlessly accommodate the large data amount generated and maintain optimal producer performance.
+\subsection{Consumer Parsing}
+The consumer possesses the capability to parse incoming packets efficiently, enabling the extraction of transaction details. Within these packets, the consumer can discern the nature of transactions, identify the addresses impacted by each transaction, and determine the originating system component responsible for initiating the transaction. This parsing ability equips the consumer with comprehensive insights into data flow and transactional dynamics, facilitating precise analysis
+\input{2_Design/DesignZcu}
+\input{2_Design/DesignPL}
